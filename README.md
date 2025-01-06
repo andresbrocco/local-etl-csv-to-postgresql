@@ -158,6 +158,41 @@ This project uses a **star schema** design optimized for analytical queries on p
 - `sql/verify_schema.sql` - Verifies schema structure and constraints
 - `sql/drop_schema.sql` - Drops all tables in correct order
 
+## ETL Pipeline
+
+### Extract Module
+
+The Extract module (`src/extract.py`) handles reading CSV transaction data with comprehensive validation and error handling.
+
+**Features:**
+- Reads CSV files into pandas DataFrames
+- Validates file existence and structure
+- Checks for required columns
+- Comprehensive error handling (FileNotFoundError, ParserError, etc.)
+- Detailed logging to both console and file (`logs/etl_pipeline.log`)
+- File metadata collection (size, modified time)
+- Data quality checks (null values, empty rows)
+
+**Usage:**
+```python
+from src.extract import extract_transactions
+from src.config import TRANSACTIONS_CSV
+
+# Extract data
+df = extract_transactions(str(TRANSACTIONS_CSV))
+print(f"Extracted {len(df)} transactions")
+```
+
+**Testing:**
+```bash
+# Run the extract module directly
+venv/bin/python3 -m src.extract
+```
+
+**Supporting Modules:**
+- `src/config.py` - Centralized configuration (paths, database settings, required columns)
+- `src/logger.py` - Logging setup with file and console handlers
+
 ## Manual Setup Steps Performed
 
 ### PostgreSQL Database Setup
