@@ -77,6 +77,87 @@ This generates `data/transactions.csv` with:
 - Realistic amount ranges per category
 - Reproducible data (seed=42)
 
+### 7. Create database schema
+
+```bash
+# Create the star schema tables
+PGPASSWORD=senhaforte psql -h localhost -U andresbrocco -d finance_etl -f sql/schema.sql
+
+# Populate the date dimension
+PGPASSWORD=senhaforte psql -h localhost -U andresbrocco -d finance_etl -f sql/populate_dim_date.sql
+
+# Verify schema creation
+PGPASSWORD=senhaforte psql -h localhost -U andresbrocco -d finance_etl -f sql/verify_schema.sql
+```
+
+## Database Schema
+
+This project uses a **star schema** design optimized for analytical queries on personal finance transaction data.
+
+### Schema Overview
+
+```
+                    ┌─────────────────┐
+                    │   dim_date      │
+                    ├─────────────────┤
+                    │ date_key (PK)   │
+                    │ date            │
+                    │ year            │
+                    │ quarter         │
+                    │ month           │
+                    │ day             │
+                    │ is_weekend      │
+                    └────────┬────────┘
+                             │
+                             │
+    ┌──────────────┐    ┌───▼──────────────────┐    ┌──────────────────┐
+    │dim_category  │    │ fact_transactions    │    │ dim_merchant     │
+    ├──────────────┤    ├──────────────────────┤    ├──────────────────┤
+    │category_key◄─┼────┤ transaction_key (PK) ├───►│ merchant_key     │
+    │category_name │    │ transaction_id       │    │ merchant_name    │
+    └──────────────┘    │ date_key (FK)        │    └──────────────────┘
+                        │ category_key (FK)    │
+                        │ merchant_key (FK)    │
+    ┌──────────────┐    │ payment_method_key   │    ┌──────────────────┐
+    │ dim_payment_ │    │ user_key (FK)        │    │   dim_user       │
+    │   method     │    │ amount               │    ├──────────────────┤
+    ├──────────────┤    │ created_at           ├───►│ user_key         │
+    │payment_      ◄────┤ updated_at           │    │ user_id          │
+    │method_key    │    └──────────────────────┘    └──────────────────┘
+    │payment_name  │
+    │payment_type  │
+    └──────────────┘
+```
+
+### Tables
+
+**Fact Table:**
+- `fact_transactions` - Central table containing transaction events with foreign keys to all dimensions
+
+**Dimension Tables:**
+- `dim_date` - Pre-populated with 1,826 dates (2022-2026) including date attributes
+- `dim_category` - Spending categories (Groceries, Dining, etc.)
+- `dim_merchant` - Merchant/vendor information
+- `dim_payment_method` - Payment methods (Credit Card, Debit Card, Cash, Digital Wallet)
+- `dim_user` - User dimension (100 users)
+
+### Key Features
+
+- **Star Schema Design**: Optimized for analytical queries with denormalized dimensions
+- **Surrogate Keys**: Auto-incrementing integer keys for all tables
+- **Natural Keys Preserved**: Original IDs maintained with unique constraints
+- **Foreign Key Constraints**: Enforce referential integrity
+- **Strategic Indexing**: 25 indexes for query performance optimization
+- **Date Dimension**: Pre-populated with full date hierarchy (year, quarter, month, day, weekend flag)
+- **Idempotent Scripts**: All SQL scripts can be safely re-run
+
+### SQL Scripts
+
+- `sql/schema.sql` - Creates all tables, constraints, and indexes
+- `sql/populate_dim_date.sql` - Populates date dimension with 5 years of data
+- `sql/verify_schema.sql` - Verifies schema structure and constraints
+- `sql/drop_schema.sql` - Drops all tables in correct order
+
 ## Manual Setup Steps Performed
 
 ### PostgreSQL Database Setup
