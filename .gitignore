@@ -1,6 +1,6 @@
 # Project-specific
 # Data files
-data/*.csv
+# data/*.csv
 
 # Logs
 logs/*.log

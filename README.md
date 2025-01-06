@@ -62,6 +62,21 @@ You should see:
 PostgreSQL version: PostgreSQL 14.x ...
 ```
 
+### 6. Generate synthetic transaction data
+
+```bash
+venv/bin/python scripts/generate_fake_data.py
+```
+
+This generates `data/transactions.csv` with:
+- 10,000 synthetic personal finance transactions
+- 2-year date range
+- 8 spending categories (Groceries, Dining, Transportation, Shopping, Utilities, Entertainment, Healthcare, Travel)
+- 4 payment methods (Credit Card, Debit Card, Cash, Digital Wallet)
+- 100 unique users
+- Realistic amount ranges per category
+- Reproducible data (seed=42)
+
 ## Manual Setup Steps Performed
 
 ### PostgreSQL Database Setup
