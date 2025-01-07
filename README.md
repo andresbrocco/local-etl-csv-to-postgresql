@@ -189,6 +189,60 @@ print(f"Extracted {len(df)} transactions")
 venv/bin/python3 -m src.extract
 ```
 
+### Transform Module
+
+The Transform module (`src/transform.py`) cleans, validates, and enriches extracted transaction data, preparing it for loading into the star schema.
+
+**Features:**
+- Data cleaning (remove duplicates, trim whitespace, standardize casing)
+- Business rule validation (amounts, dates, categories, payment methods)
+- Date attribute derivation (year, quarter, month, day, weekday, weekend flag)
+- Dimension data extraction (creates DataFrames for each dimension)
+- Comprehensive data quality checks with detailed logging
+- Invalid record filtering (logs issues without stopping pipeline)
+
+**Data Quality Checks:**
+- Amounts: Must be > $0.01 and < $10,000.00
+- Dates: Must be between 2020-01-01 and present (not future)
+- Categories: Must be in allowed list (8 categories)
+- Payment Methods: Must be in allowed list (4 methods)
+- Transaction IDs: Must be unique (duplicates removed)
+
+**Returns:**
+```python
+{
+    'fact_data': pd.DataFrame,           # Transformed fact table data
+    'dim_date': pd.DataFrame,            # Date dimension with 11 attributes
+    'dim_category': pd.DataFrame,        # Category dimension
+    'dim_merchant': pd.DataFrame,        # Merchant dimension
+    'dim_payment_method': pd.DataFrame,  # Payment method dimension
+    'dim_user': pd.DataFrame             # User dimension
+}
+```
+
+**Usage:**
+```python
+from src.extract import extract_transactions
+from src.transform import transform_transactions
+from src.config import TRANSACTIONS_CSV
+
+# Extract and transform
+df_raw = extract_transactions(str(TRANSACTIONS_CSV))
+transformed = transform_transactions(df_raw)
+
+# Access transformed data
+fact_df = transformed['fact_data']
+dim_date_df = transformed['dim_date']
+print(f"Fact records: {len(fact_df)}")
+print(f"Unique dates: {len(dim_date_df)}")
+```
+
+**Testing:**
+```bash
+# Run the transform module directly
+venv/bin/python3 -m src.transform
+```
+
 **Supporting Modules:**
 - `src/config.py` - Centralized configuration (paths, database settings, required columns)
 - `src/logger.py` - Logging setup with file and console handlers
