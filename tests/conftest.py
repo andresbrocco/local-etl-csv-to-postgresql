@@ -1,13 +1,14 @@
 """
 Shared pytest fixtures and configuration for ETL pipeline tests.
 
-This module provides reusable fixtures for testing the extract module,
+This module provides reusable fixtures for testing the extract and transform modules,
 including test data, file creation, and configuration.
 """
 
 import pytest
 import pandas as pd
 import logging
+from datetime import datetime, timedelta
 
 from src.config import REQUIRED_CSV_COLUMNS
 
@@ -164,3 +165,136 @@ def disable_logging():
     logging.disable(logging.CRITICAL)
     yield
     logging.disable(logging.NOTSET)
+
+
+# ============================================================================
+# Transform Module Fixtures
+# ============================================================================
+
+@pytest.fixture
+def clean_transform_data():
+    """
+    Provides clean transaction data for transform testing.
+
+    Returns:
+        pd.DataFrame: Clean transaction data with valid values
+    """
+    return pd.DataFrame({
+        "transaction_id": ["TXN001", "TXN002", "TXN003", "TXN004"],
+        "date": ["2023-06-15", "2023-06-16", "2023-06-17", "2023-06-18"],
+        "category": ["Groceries", "Dining", "Transportation", "Entertainment"],
+        "amount": [50.00, 35.50, 15.75, 100.00],
+        "merchant": ["Whole Foods", "Starbucks", "Uber", "Netflix"],
+        "payment_method": ["Credit Card", "Debit Card", "Digital Wallet", "Credit Card"],
+        "user_id": [1, 2, 1, 3]
+    })
+
+
+@pytest.fixture
+def dirty_transform_data():
+    """
+    Provides dirty transaction data with various issues for transform testing.
+
+    Returns:
+        pd.DataFrame: Transaction data with whitespace, mixed case, and duplicates
+    """
+    return pd.DataFrame({
+        "transaction_id": ["TXN001", "TXN002", "TXN001", "TXN003"],  # Duplicate
+        "date": ["2023-06-15", "2023-06-16", "2023-06-15", "2023-06-17"],
+        "category": ["  groceries  ", "DINING", "groceries", "entertainment  "],
+        "amount": [50.00, 35.50, 50.00, 100.00],
+        "merchant": ["  whole   foods  ", "STARBUCKS", "whole foods", "  netflix  "],
+        "payment_method": ["credit card", "DEBIT CARD", "credit card", "Credit Card"],
+        "user_id": [1, 2, 1, 3]
+    })
+
+
+@pytest.fixture
+def invalid_transform_data():
+    """
+    Provides transaction data with validation issues.
+
+    Returns:
+        pd.DataFrame: Transaction data with invalid amounts, dates, categories, etc.
+    """
+    future_date = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d")
+    old_date = "2019-01-01"  # Before MIN_VALID_DATE (2020-01-01)
+
+    return pd.DataFrame({
+        "transaction_id": ["TXN001", "TXN002", "TXN003", "TXN004", "TXN005", "TXN006"],
+        "date": ["2023-06-15", future_date, old_date, "2023-06-18", "2023-06-19", "2023-06-20"],
+        "category": ["Groceries", "Dining", "InvalidCategory", "Entertainment", "Shopping", "Groceries"],
+        "amount": [50.00, -10.00, 100.00, 15000.00, 0.00, 25.00],  # Negative, too large, zero
+        "merchant": ["Whole Foods", "Starbucks", "Target", "Netflix", "Amazon", "Trader Joes"],
+        "payment_method": ["Credit Card", "InvalidPayment", "Cash", "Digital Wallet", "Credit Card", "Debit Card"],
+        "user_id": [1, 2, 3, 4, "invalid", 6]  # Invalid user_id
+    })
+
+
+@pytest.fixture
+def sample_date_series():
+    """
+    Provides a sample date series for date dimension testing.
+
+    Returns:
+        pd.Series: Series of datetime objects
+    """
+    dates = pd.date_range(start="2023-06-15", end="2023-06-20", freq="D")
+    return pd.Series(dates)
+
+
+@pytest.fixture
+def weekend_date_series():
+    """
+    Provides dates that include weekends for testing weekend detection.
+
+    Returns:
+        pd.Series: Series including Saturday and Sunday
+    """
+    # June 17, 2023 is Saturday, June 18 is Sunday
+    dates = pd.to_datetime(["2023-06-16", "2023-06-17", "2023-06-18", "2023-06-19"])
+    return pd.Series(dates)
+
+
+@pytest.fixture
+def transform_constants():
+    """
+    Provides transform module constants for testing.
+
+    Returns:
+        dict: Dictionary with transform constants
+    """
+    from src.transform import (
+        ALLOWED_CATEGORIES,
+        ALLOWED_PAYMENT_METHODS,
+        MIN_VALID_DATE,
+        MIN_AMOUNT,
+        MAX_AMOUNT
+    )
+
+    return {
+        "allowed_categories": ALLOWED_CATEGORIES,
+        "allowed_payment_methods": ALLOWED_PAYMENT_METHODS,
+        "min_valid_date": MIN_VALID_DATE,
+        "min_amount": MIN_AMOUNT,
+        "max_amount": MAX_AMOUNT
+    }
+
+
+@pytest.fixture
+def validated_transform_data():
+    """
+    Provides validated transaction data with datetime conversion for dimension testing.
+
+    Returns:
+        pd.DataFrame: Transaction data with datetime dates, ready for dimension creation
+    """
+    return pd.DataFrame({
+        "transaction_id": ["TXN001", "TXN002", "TXN003", "TXN004"],
+        "date": pd.to_datetime(["2023-06-15", "2023-06-16", "2023-06-17", "2023-06-18"]),
+        "category": ["Groceries", "Dining", "Transportation", "Entertainment"],
+        "amount": [50.00, 35.50, 15.75, 100.00],
+        "merchant": ["Whole Foods", "Starbucks", "Uber", "Netflix"],
+        "payment_method": ["Credit Card", "Debit Card", "Digital Wallet", "Credit Card"],
+        "user_id": [1, 2, 1, 3]
+    })
