@@ -243,6 +243,75 @@ print(f"Unique dates: {len(dim_date_df)}")
 venv/bin/python3 -m src.transform
 ```
 
+### Load Module
+
+The Load module (`src/load.py`) inserts transformed data into the PostgreSQL star schema data warehouse with comprehensive transaction management and duplicate prevention.
+
+**Features:**
+- Database connection management with proper cleanup
+- Dimension table loading with ON CONFLICT handling (idempotent)
+- Dimension key mapping (natural keys → surrogate keys)
+- Fact data enrichment with surrogate keys
+- Fact table loading with duplicate prevention
+- Transaction management (commit/rollback for atomicity)
+- Incremental loading (skip existing records)
+- Batch loading for performance (1,000 records per batch)
+- Comprehensive error handling with descriptive messages
+
+**Loading Sequence:**
+1. Establish database connection
+2. Begin transaction
+3. Load all dimension tables (dim_date, dim_category, dim_merchant, dim_payment_method, dim_user)
+4. Retrieve dimension key mappings (natural → surrogate keys)
+5. Enrich fact data with surrogate keys
+6. Load fact table (with duplicate checking)
+7. Commit transaction (or rollback on error)
+
+**Returns:**
+```python
+{
+    'dimensions_inserted': {
+        'dim_date': int,
+        'dim_category': int,
+        'dim_merchant': int,
+        'dim_payment_method': int,
+        'dim_user': int
+    },
+    'facts_inserted': int,
+    'facts_skipped': int  # Duplicates
+}
+```
+
+**Usage:**
+```python
+from src.extract import extract_transactions
+from src.transform import transform_transactions
+from src.load import load_data_warehouse
+from src.config import TRANSACTIONS_CSV
+
+# Complete ETL Pipeline
+df_raw = extract_transactions(str(TRANSACTIONS_CSV))
+transformed = transform_transactions(df_raw)
+results = load_data_warehouse(transformed)
+
+print(f"Dimensions loaded: {results['dimensions_inserted']}")
+print(f"Facts inserted: {results['facts_inserted']}")
+print(f"Facts skipped: {results['facts_skipped']}")
+```
+
+**Testing:**
+```bash
+# Run the complete ETL pipeline
+venv/bin/python3 -m src.load
+```
+
+**Key Features:**
+- **Idempotent**: Can be run multiple times without duplicating data
+- **Atomic**: All-or-nothing loading with transaction management
+- **Incremental**: Only loads new records (checks existing transaction_ids)
+- **Safe**: Parameterized queries prevent SQL injection
+- **Fast**: Batch loading with psycopg2.extras.execute_batch()
+
 **Supporting Modules:**
 - `src/config.py` - Centralized configuration (paths, database settings, required columns)
 - `src/logger.py` - Logging setup with file and console handlers
