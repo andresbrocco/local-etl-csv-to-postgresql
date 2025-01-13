@@ -316,6 +316,135 @@ venv/bin/python3 -m src.load
 - `src/config.py` - Centralized configuration (paths, database settings, required columns)
 - `src/logger.py` - Logging setup with file and console handlers
 
+## Testing
+
+The project includes comprehensive test suites for all ETL modules using pytest with fixtures, parametrization, and markers.
+
+### Test Organization
+
+```
+tests/
+├── conftest.py          # Shared fixtures for all tests
+├── test_extract.py      # Extract module tests
+├── test_transform.py    # Transform module tests
+└── test_load.py         # Load module tests
+```
+
+### Running Tests
+
+**Run all tests:**
+```bash
+venv/bin/python3 -m pytest tests/ -v
+```
+
+**Run specific module tests:**
+```bash
+# Extract module tests
+venv/bin/python3 -m pytest tests/test_extract.py -v
+
+# Transform module tests
+venv/bin/python3 -m pytest tests/test_transform.py -v
+
+# Load module tests
+venv/bin/python3 -m pytest tests/test_load.py -v
+```
+
+**Run tests by marker:**
+```bash
+# Run only unit tests (fast, isolated)
+venv/bin/python3 -m pytest tests/ -v -m unit
+
+# Run only integration tests (end-to-end scenarios)
+venv/bin/python3 -m pytest tests/ -v -m integration
+
+# Run only error handling tests
+venv/bin/python3 -m pytest tests/ -v -m error_handling
+
+# Run only validation tests
+venv/bin/python3 -m pytest tests/ -v -m validation
+```
+
+**Run tests with coverage:**
+```bash
+venv/bin/python3 -m pytest tests/ --cov=src --cov-report=html
+```
+
+### Test Suites Overview
+
+**Extract Module Tests (`test_extract.py`):**
+- CSV file reading and parsing
+- Column validation
+- Error handling (missing files, invalid formats)
+- Data quality checks
+
+**Transform Module Tests (`test_transform.py`):**
+- Data cleaning (duplicates, whitespace, casing)
+- Business rule validation (amounts, dates, categories)
+- Date attribute derivation
+- Dimension extraction
+- Invalid record filtering
+
+**Load Module Tests (`test_load.py` - 20 tests):**
+- **Database Connection (3 tests)**:
+  - Successful connection
+  - Connection failure handling
+  - Context manager rollback/cleanup
+
+- **Dimension Loading (4 tests)**:
+  - Load new dimension records
+  - Skip existing records (idempotency)
+  - Empty DataFrame handling
+  - Date dimension with all attributes
+
+- **Dimension Key Mapping (2 tests)**:
+  - Retrieve individual mappings
+  - Retrieve all dimension mappings
+
+- **Fact Enrichment (5 tests)**:
+  - Successful enrichment with valid keys
+  - Error handling for missing keys (category, merchant, user, date)
+
+- **Fact Loading (3 tests)**:
+  - Check existing transactions
+  - Load all new transactions
+  - Incremental loading with duplicate skipping
+
+- **End-to-End Integration (3 tests)**:
+  - Complete successful load pipeline
+  - Incremental loading idempotency
+  - Transaction rollback on errors
+
+### Test Markers
+
+Tests are organized using pytest markers:
+- `@pytest.mark.unit` - Fast, isolated unit tests with mocked dependencies
+- `@pytest.mark.integration` - End-to-end tests with multiple components
+- `@pytest.mark.error_handling` - Exception and error scenario tests
+- `@pytest.mark.validation` - Data validation tests
+- `@pytest.mark.file_operations` - File I/O tests
+
+### Test Fixtures
+
+Common fixtures available in `conftest.py`:
+- **Data fixtures**: `valid_transaction_data`, `dimension_dataframes`, `enriched_fact_data`
+- **File fixtures**: `valid_csv_file`, `empty_csv_file`, `incomplete_csv_file`
+- **Mock fixtures**: `mock_db_connection`, `mock_cursor`
+- **Configuration fixtures**: `required_columns`, `dimension_mappings`
+
+### Example Test Output
+
+```bash
+$ venv/bin/python3 -m pytest tests/test_load.py -v
+
+tests/test_load.py::TestGetDbConnection::test_get_db_connection_success PASSED
+tests/test_load.py::TestGetDbConnection::test_get_db_connection_failure PASSED
+tests/test_load.py::TestLoadDimension::test_load_dimension_new_records PASSED
+tests/test_load.py::TestEnrichFactWithKeys::test_enrich_fact_with_keys_success PASSED
+tests/test_load.py::TestLoadDataWarehouse::test_load_data_warehouse_success PASSED
+...
+======================= 20 passed in 0.17s =======================
+```
+
 ## Manual Setup Steps Performed
 
 ### PostgreSQL Database Setup

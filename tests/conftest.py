@@ -298,3 +298,131 @@ def validated_transform_data():
         "payment_method": ["Credit Card", "Debit Card", "Digital Wallet", "Credit Card"],
         "user_id": [1, 2, 1, 3]
     })
+
+
+# ============================================================================
+# Load Module Fixtures
+# ============================================================================
+
+@pytest.fixture
+def mock_cursor():
+    """
+    Provides a mock database cursor for load testing.
+
+    Returns:
+        Mock: Mock cursor object with execute, fetchall, fetchone, and execute_batch methods
+    """
+    from unittest.mock import Mock
+    cursor = Mock()
+    cursor.execute = Mock()
+    cursor.fetchall = Mock(return_value=[])
+    cursor.fetchone = Mock(return_value=(0,))  # Default return value for COUNT queries
+    cursor.rowcount = 0
+    cursor.close = Mock()
+    return cursor
+
+
+@pytest.fixture
+def mock_db_connection(mock_cursor):
+    """
+    Provides a mock database connection for load testing.
+
+    Args:
+        mock_cursor: Mock cursor fixture
+
+    Returns:
+        Mock: Mock connection object with cursor, commit, rollback, and close methods
+    """
+    from unittest.mock import Mock
+    conn = Mock()
+    conn.cursor = Mock(return_value=mock_cursor)
+    conn.commit = Mock()
+    conn.rollback = Mock()
+    conn.close = Mock()
+    conn.autocommit = False
+    conn.closed = False  # Connection starts as open
+    return conn
+
+
+@pytest.fixture
+def dimension_dataframes():
+    """
+    Provides sample dimension DataFrames for load testing.
+
+    Returns:
+        dict: Dictionary with dimension DataFrames (category, merchant, payment_method, user, date)
+    """
+    return {
+        "category": pd.DataFrame({
+            "category_name": ["Groceries", "Dining", "Transportation"]
+        }),
+        "merchant": pd.DataFrame({
+            "merchant_name": ["Whole Foods", "Starbucks", "Uber"]
+        }),
+        "payment_method": pd.DataFrame({
+            "payment_method_name": ["Credit Card", "Debit Card", "Digital Wallet"]
+        }),
+        "user": pd.DataFrame({
+            "user_id": [1, 2, 3]
+        }),
+        "date": pd.DataFrame({
+            "date_key": [20230615, 20230616, 20230617],
+            "date": pd.to_datetime(["2023-06-15", "2023-06-16", "2023-06-17"]),
+            "year": [2023, 2023, 2023],
+            "quarter": [2, 2, 2],
+            "month": [6, 6, 6],
+            "day": [15, 16, 17],
+            "month_name": ["June", "June", "June"],
+            "day_name": ["Thursday", "Friday", "Saturday"],
+            "day_of_week": [4, 5, 6],
+            "week_of_year": [24, 24, 24],
+            "is_weekend": [False, False, True]
+        })
+    }
+
+
+@pytest.fixture
+def dimension_mappings():
+    """
+    Provides sample dimension key mappings for load testing.
+
+    Returns:
+        dict: Dictionary with dimension mappings (natural key -> surrogate key)
+    """
+    return {
+        "category": {"Groceries": 1, "Dining": 2, "Transportation": 3},
+        "merchant": {"Whole Foods": 1, "Starbucks": 2, "Uber": 3},
+        "payment_method": {"Credit Card": 1, "Debit Card": 2, "Digital Wallet": 3},
+        "user": {1: 1, 2: 2, 3: 3},
+        "date": {20230615: 20230615, 20230616: 20230616, 20230617: 20230617}
+    }
+
+
+@pytest.fixture
+def enriched_fact_data():
+    """
+    Provides enriched fact DataFrame with surrogate keys for load testing.
+
+    Returns:
+        pd.DataFrame: Fact data with surrogate keys added
+    """
+    return pd.DataFrame({
+        "transaction_id": ["TXN001", "TXN002", "TXN003"],
+        "date_key": [20230615, 20230616, 20230617],
+        "amount": [50.00, 35.50, 15.75],
+        "category_key": [1, 2, 3],
+        "merchant_key": [1, 2, 3],
+        "payment_method_key": [1, 2, 3],
+        "user_key": [1, 2, 3]
+    })
+
+
+@pytest.fixture
+def existing_transaction_ids():
+    """
+    Provides a set of existing transaction IDs for incremental load testing.
+
+    Returns:
+        set: Set of transaction IDs that already exist in the database
+    """
+    return {"TXN001", "TXN002"}
