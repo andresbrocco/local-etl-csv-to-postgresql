@@ -316,6 +316,112 @@ venv/bin/python3 -m src.load
 - `src/config.py` - Centralized configuration (paths, database settings, required columns)
 - `src/logger.py` - Logging setup with file and console handlers
 
+### ETL Orchestration
+
+The ETL Orchestration module (`src/etl_pipeline.py`) serves as the main entry point, coordinating all ETL phases with comprehensive error handling and monitoring.
+
+**Features:**
+- Complete pipeline orchestration (Extract → Transform → Load)
+- Comprehensive error handling for all phases
+- Pre-flight validation (database connection, tables, file)
+- Multiple execution modes (full, dry-run, validate-only)
+- CLI interface with argparse
+- Execution time tracking and statistics
+- Graceful error handling and recovery
+- Proper exit codes for scripting
+- Keyboard interrupt handling (Ctrl+C)
+
+**CLI Usage:**
+
+```bash
+# Show help and all options
+venv/bin/python3 -m src.etl_pipeline --help
+
+# Run full ETL pipeline with default file (data/transactions.csv)
+venv/bin/python3 -m src.etl_pipeline
+
+# Run with custom CSV file
+venv/bin/python3 -m src.etl_pipeline --file data/custom_transactions.csv
+
+# Dry run (extract and transform only, no database writes)
+venv/bin/python3 -m src.etl_pipeline --dry-run
+
+# Validate prerequisites only (check DB, tables, file)
+venv/bin/python3 -m src.etl_pipeline --validate-only
+
+# Enable verbose/debug logging
+venv/bin/python3 -m src.etl_pipeline --verbose
+```
+
+**Pipeline Output:**
+
+The pipeline provides detailed execution statistics:
+
+```
+================================================================================
+ETL PIPELINE SUMMARY
+================================================================================
+✓ Status: SUCCESS
+✓ Execution Time: 2.45s
+✓ Records Extracted: 10,000
+✓ Records Transformed: 9,987
+✓ Records Loaded: 9,987
+
+Dimension Statistics:
+  • dim_date: 731 records
+  • dim_category: 8 records
+  • dim_merchant: 8,613 records
+  • dim_payment_method: 4 records
+  • dim_user: 100 records
+
+Data Quality:
+  • Duplicate transactions removed: 13
+  • Invalid records filtered: 0
+================================================================================
+```
+
+**Return Values:**
+
+When used programmatically, the pipeline returns a structured dictionary:
+
+```python
+from src.etl_pipeline import run_etl_pipeline
+
+results = run_etl_pipeline('data/transactions.csv')
+
+# Results structure:
+{
+    'status': 'success',               # or 'failure'
+    'execution_time_seconds': 2.45,
+    'extract': 10000,                  # records extracted
+    'transform': 9987,                 # records transformed
+    'load': 9987,                      # records loaded
+    'facts_skipped': 0,                # duplicates
+    'dimensions_inserted': {
+        'dim_date': 731,
+        'dim_category': 8,
+        'dim_merchant': 8613,
+        'dim_payment_method': 4,
+        'dim_user': 100
+    },
+    'error': None                      # error message if failed
+}
+```
+
+**Error Handling:**
+
+The pipeline includes custom exception classes for each phase:
+- `ETLError` - Base exception for all ETL errors
+- `ExtractError` - Extraction phase failures
+- `TransformError` - Transformation phase failures
+- `LoadError` - Load phase failures
+- `ValidationError` - Validation failures
+
+**Exit Codes:**
+- `0` - Success
+- `1` - Failure
+- `130` - Interrupted by user (Ctrl+C)
+
 ## Testing
 
 The project includes comprehensive test suites for all ETL modules using pytest with fixtures, parametrization, and markers.
