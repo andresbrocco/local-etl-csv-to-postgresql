@@ -551,6 +551,162 @@ tests/test_load.py::TestLoadDataWarehouse::test_load_data_warehouse_success PASS
 ======================= 20 passed in 0.17s =======================
 ```
 
+## Analytics Queries
+
+The project includes a comprehensive SQL query library (`sql/queries.sql`) with 7 categories of analytical queries that demonstrate the value of the star schema design.
+
+### Running Analytics Queries
+
+**Run validation queries:**
+```bash
+# Check data integrity, orphaned records, duplicates
+venv/bin/python3 -m src.run_queries --validation
+```
+
+**Run sample queries:**
+```bash
+# Execute curated sample queries for demonstration
+venv/bin/python3 -m src.run_queries
+```
+
+**Run all queries:**
+```bash
+# Execute all queries from sql/queries.sql
+venv/bin/python3 -m src.run_queries --all
+
+# Limit to first N queries
+venv/bin/python3 -m src.run_queries --all --limit 5
+```
+
+**Run queries directly with psql:**
+```bash
+# Individual query from file
+PGPASSWORD=senhaforte psql -h localhost -U andresbrocco -d finance_etl -f sql/queries.sql
+```
+
+### Query Categories
+
+**1. Data Validation Queries**
+- Record counts across all tables
+- Orphaned fact record detection (should be 0)
+- Duplicate transaction_id verification (should be 0)
+- Amount data quality statistics
+
+**2. Time-Based Analysis**
+- Monthly spending trends
+- Quarterly spending comparison
+- Day of week spending patterns
+- Weekend vs Weekday spending
+
+**3. Category Analysis**
+- Top spending categories with percentages
+- Category spending by month (pivot view)
+
+**4. Merchant Analysis**
+- Top 20 merchants by spending
+- Most frequently visited merchants
+
+**5. Payment Method Analysis**
+- Payment method usage distribution
+- Payment method preferences by category
+
+**6. User Analysis**
+- Top 10 spending users
+- User spending breakdown by category
+
+**7. Complex Analytical Queries**
+- Month-over-month spending growth (LAG window function)
+- Running total by category (window functions)
+- Anomalous transaction detection (z-scores)
+
+### Sample Query Outputs
+
+**Validation Results:**
+```
+================================================================================
+VALIDATION SUMMARY
+================================================================================
+✓ All validation checks PASSED
+✓ No orphaned records: 0
+✓ No duplicate transaction IDs: 0
+
+Record Counts:
+  • fact_transactions: 10,003
+  • dim_date: 1,826
+  • dim_category: 8
+  • dim_merchant: 8,613
+  • dim_payment_method: 4
+  • dim_user: 100
+
+Data Quality:
+  • Min amount: $5.07
+  • Max amount: $1,996.60
+  • Average: $164.01
+  • Median: $104.93
+```
+
+**Top 5 Spending Categories:**
+```
+category_name | transaction_count | total_spending | percentage_of_total
+-----------------------------------------------------------------------------
+Shopping      | 1,483             | $388,974.03    | 23.71%
+Travel        | 304               | $313,895.01    | 19.13%
+Groceries     | 2,536             | $264,326.97    | 16.11%
+Utilities     | 1,008             | $180,763.73    | 11.02%
+Healthcare    | 402               | $169,488.91    | 10.33%
+```
+
+**Weekend vs Weekday Spending:**
+```
+day_type | transaction_count | total_spending | avg_transaction
+----------------------------------------------------------------
+Weekday  | 7,259             | $1,196,615.77  | $164.85
+Weekend  | 2,744             | $443,967.13    | $161.80
+```
+
+**Payment Method Distribution:**
+```
+payment_method  | transaction_count | total_spending | percentage
+------------------------------------------------------------------
+Credit Card     | 7,035 (70.33%)    | $1,163,779.92  | 70.33%
+Debit Card      | 1,498 (14.98%)    | $229,944.00    | 14.98%
+Cash            | 983 (9.83%)       | $165,492.65    | 9.83%
+Digital Wallet  | 487 (4.87%)       | $81,366.33     | 4.87%
+```
+
+### SQL Techniques Demonstrated
+
+The query library showcases various SQL techniques:
+- **Aggregations**: SUM, COUNT, AVG, MIN, MAX, PERCENTILE_CONT
+- **Joins**: INNER JOIN across star schema (fact + dimensions)
+- **Window Functions**: LAG, SUM OVER, running totals, partitions
+- **CTEs**: WITH clauses for complex queries
+- **Subqueries**: Inline and correlated subqueries
+- **CASE Statements**: Conditional logic and pivoting
+- **GROUP BY with HAVING**: Filtered aggregations
+- **Set Operations**: UNION ALL for combining results
+
+### Benefits of Star Schema Design
+
+The queries demonstrate why dimensional modeling improves analytical performance:
+
+1. **Simplified Joins**: Direct joins from fact to dimensions (no complex multi-table joins)
+2. **Pre-Aggregated Dimensions**: Date dimension includes year, quarter, month attributes
+3. **Query Performance**: Strategic indexing on foreign keys and natural keys
+4. **Business Clarity**: Dimension tables provide clear business context
+5. **Reusability**: Dimensions can be joined in any combination
+6. **Scalability**: Schema supports growing transaction volume
+
+### Future Enhancements
+
+Potential analytics improvements:
+- Parameterized queries (date ranges, specific users)
+- Materialized views for expensive queries
+- Query performance metrics and optimization
+- Jupyter notebook with visualizations
+- Interactive dashboard (Streamlit, Dash)
+- Export to visualization tools (Tableau, Power BI)
+
 ## Manual Setup Steps Performed
 
 ### PostgreSQL Database Setup
